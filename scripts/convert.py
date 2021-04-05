@@ -117,6 +117,7 @@ def main():
         outname = fname.replace('.pdf', '.txt')
         if os.path.exists(output_dir + outname):
             print('[batparser] file {} exists. skipping...'.format(outname))
+            counter += 1
             continue
         cmd_str = 'pdftoppm -f {} -l {} -jpeg {} {}'
         rename_cmd = 'mv {} {}'
@@ -128,6 +129,11 @@ def main():
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
             out, err = proc.communicate()
+            if page_num >= 10:
+                if i < 10:
+                    i = '0' + str(i)
+                else:
+                    i = str(i)
             r_cmd = rename_cmd.format(
                 output_dir + species_name + '-{}.jpg'.format(i),
                 output_dir + species_name + '-{}.jpeg'.format(i))
@@ -137,9 +143,17 @@ def main():
             out, err = proc.communicate()
 
         # convert images for current paper into text
-        fnames = [
-            output_dir + species_name + '-{}.jpeg'.format(i + 1) 
-            for i in range(page_num)]
+        if page_num < 10:
+            fnames = [
+                output_dir + species_name + '-{}.jpeg'.format(i + 1) 
+                for i in range(page_num)]
+        elif page_num >= 10:
+            fnames = [
+                output_dir + species_name + '-{}.jpeg'.format('0' + str(i + 1))
+                for i in range(9)]
+            fnames.extend([
+                output_dir + species_name + '-{}.jpeg'.format(i)
+                for i in range(10, page_num + 1)])
         # fnames = [subfname for page in fnames_nested for subfname in page]
         with open(output_dir + outname, 'a') as f:
             print('[batparser] converting pages to text...')
