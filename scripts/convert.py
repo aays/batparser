@@ -1,6 +1,9 @@
 '''
-otc/ocr - will take in and process PDFs
--> should have an offline GUI that you can upload docs to
+convert.py - convert all PDFs in dir to txt files 
+using optical character recognition
+
+usage:
+python3.6 convert.py [input dir] [output dir]
 '''
 
 import sys # input/output
@@ -110,8 +113,11 @@ def main():
         print('[batparser] working on', fname, 
               '- file {} of {}'.format(counter, num_files))
         _, height, half_width, page_num = get_info(input_dir + fname)
-        species_name = fname.replace('.txt', '')
+        species_name = fname.replace('.pdf', '')
         outname = fname.replace('.pdf', '.txt')
+        if os.path.exists(output_dir + outname):
+            print('[batparser] file {} exists. skipping...'.format(outname))
+            continue
         cmd_str = 'pdftoppm -f {} -l {} -jpeg {} {}'
         rename_cmd = 'mv {} {}'
         for i in range(page_num):
@@ -123,8 +129,8 @@ def main():
                     stderr=subprocess.PIPE)
             out, err = proc.communicate()
             r_cmd = rename_cmd.format(
-                output_dir + fname + '-{}.jpg'.format(i),
-                output_dir + fname + '-{}.jpeg'.format(i))
+                output_dir + species_name + '-{}.jpg'.format(i),
+                output_dir + species_name + '-{}.jpeg'.format(i))
             proc = subprocess.Popen(r_cmd.split(),
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
@@ -132,13 +138,16 @@ def main():
 
         # convert images for current paper into text
         fnames = [
-            output_dir + fname + '-{}.jpeg'.format(i + 1) 
+            output_dir + species_name + '-{}.jpeg'.format(i + 1) 
             for i in range(page_num)]
         # fnames = [subfname for page in fnames_nested for subfname in page]
         with open(output_dir + outname, 'a') as f:
             print('[batparser] converting pages to text...')
             for page_img in tqdm(fnames):
                 text = parse(page_img)
+                # clean newlines
+                text = text.replace('\n\n', '\n')
+                text = re.sub(r'(\n +)+', '\n', text)
                 f.write(text)
         print('[batparser] cleaning temp files...')
         for page_img in fnames:
